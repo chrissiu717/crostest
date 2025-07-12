@@ -8,9 +8,32 @@
         button { padding: 10px 20px; margin-top: 10px; cursor: pointer; }
         pre { background-color: #f0f0f0; padding: 10px; border-radius: 5px; white-space: pre-wrap; word-break: break-all; }
         input[type="file"] { margin-top: 10px; }
+        .warning-message {
+            background-color: #fff3cd;
+            color: #664d03;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ffecb5;
+            margin-bottom: 20px;
+            display: none; /* Hidden by default */
+        }
+        .error-output {
+            color: #dc3545; /* Red color for errors */
+            font-weight: bold;
+        }
+        .success-output {
+            color: #28a745; /* Green color for success */
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+    <div id="hostingWarning" class="warning-message">
+        <strong>Important: This page is NOT running from a web server (HTTP/HTTPS).</strong><br>
+        Network requests (like connecting to Apps Script) and CORS security policies require the page to be served from an `http://` or `https://` origin.<br>
+        Please upload this HTML file to a web server (e.g., GitHub Pages, Netlify, or a local server like `http-server`) and access it via its web URL.
+    </div>
+
     <h1>CORS Test</h1>
     <p>This page will send a POST request to your new Apps Script Web App.</p>
     <input type="file" id="testFileInput">
@@ -18,21 +41,31 @@
     <pre id="responseOutput"></pre>
 
     <script>
-        // IMPORTANT: Replace with the URL of your NEW, minimal Apps Script Web App
-        const TEST_APPS_SCRIPT_URL = 'YOUR_NEW_MINIMAL_APPS_SCRIPT_URL_HERE'; // PASTE THE NEW URL HERE!
+        // IMPORTANT: This URL has been updated with the one you provided.
+        // It MUST ONLY contain the Google Apps Script Web App URL.
+        const TEST_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbybRkaeolL_3d0vbsIn9M6bj3cj7d-tbkKqDozr2mT-6IdKnA6l5xDw4dTLxr4Oj3Ja/exec';
+
+        // Check if the page is running from a local file system or null origin
+        const hostingWarningDiv = document.getElementById('hostingWarning');
+        if (window.location.protocol === 'file:' || window.location.origin === 'null') {
+            hostingWarningDiv.style.display = 'block';
+        }
 
         document.getElementById('sendTestPost').addEventListener('click', async () => {
             const fileInput = document.getElementById('testFileInput');
             const responseOutput = document.getElementById('responseOutput');
             responseOutput.textContent = 'Sending...';
+            responseOutput.classList.remove('error-output', 'success-output'); // Clear previous styling
 
-            if (!TEST_APPS_SCRIPT_URL || TEST_APPS_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbybRkaeolL_3d0vbsIn9M6bj3cj7d-tbkKqDozr2mT-6IdKnA6l5xDw4dTLxr4Oj3Ja/exec') {
-                responseOutput.textContent = 'Error: Please update TEST_APPS_SCRIPT_URL in the JavaScript code.';
+            if (!TEST_APPS_SCRIPT_URL || TEST_APPS_SCRIPT_URL.includes('YOUR_NEW_MINIMAL_APPS_SCRIPT_URL_HERE')) {
+                responseOutput.textContent = 'Error: TEST_APPS_SCRIPT_URL is not correctly set. Please update it in the JavaScript code.';
+                responseOutput.classList.add('error-output');
                 return;
             }
 
             if (!fileInput.files.length) {
                 responseOutput.textContent = 'Please select a file first (any small image file will do).';
+                responseOutput.classList.add('error-output');
                 return;
             }
 
@@ -44,13 +77,13 @@
                 const mimeType = file.type;
 
                 try {
-                    const response = await fetch(TEST_APPS_SCRIPT_URL, {
+                    const response = await fetch(TEST_APPS_SCRIPT_URL, { // This is the correct URL
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            action: 'test', // A dummy action
+                            action: 'test', // A dummy action for the Apps Script
                             testData: 'Hello from frontend!',
                             fileName: file.name,
                             fileSize: file.size,
@@ -60,12 +93,25 @@
                         })
                     });
 
+                    // Check if the response is OK (status 200-299)
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('HTTP Error Details:', {
+                            status: response.status,
+                            statusText: response.statusText,
+                            responseBody: errorText
+                        });
+                        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText.substring(0, 200)}...`);
+                    }
+
                     const result = await response.json();
                     responseOutput.textContent = 'Response from Apps Script:\n' + JSON.stringify(result, null, 2);
+                    responseOutput.classList.add('success-output');
                     console.log('Full response:', result);
 
                 } catch (error) {
                     responseOutput.textContent = 'Error: ' + error.message + '\nCheck browser console and Apps Script logs.';
+                    responseOutput.classList.add('error-output');
                     console.error('Frontend fetch error:', error);
                 }
             };
