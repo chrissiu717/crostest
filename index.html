@@ -57,11 +57,14 @@
             responseOutput.textContent = 'Sending...';
             responseOutput.classList.remove('error-output', 'success-output'); // Clear previous styling
 
-            if (!TEST_APPS_SCRIPT_URL || TEST_APPS_SCRIPT_URL.includes('YOUR_NEW_MINIMAL_APPS_SCRIPT_URL_HERE')) {
-                responseOutput.textContent = 'Error: TEST_APPS_SCRIPT_URL is not correctly set. Please update it in the JavaScript code.';
+            // --- NEW CHECK FOR INCORRECT URL ---
+            if (TEST_APPS_SCRIPT_URL.includes('github.io') || TEST_APPS_SCRIPT_URL.includes('YOUR_NEW_MINIMAL_APPS_SCRIPT_URL_HERE')) {
+                responseOutput.textContent = 'Error: TEST_APPS_SCRIPT_URL is incorrectly set! It must ONLY be the Google Apps Script URL, not a GitHub Pages URL or placeholder.';
                 responseOutput.classList.add('error-output');
+                console.error('Configuration Error: TEST_APPS_SCRIPT_URL is:', TEST_APPS_SCRIPT_URL);
                 return;
             }
+            // --- END NEW CHECK ---
 
             if (!fileInput.files.length) {
                 responseOutput.textContent = 'Please select a file first (any small image file will do).';
@@ -75,6 +78,8 @@
             reader.onload = async (e) => {
                 const base64Content = e.target.result.split(',')[1];
                 const mimeType = file.type;
+
+                console.log('Attempting to fetch from URL:', TEST_APPS_SCRIPT_URL); // Log the URL being used
 
                 try {
                     const response = await fetch(TEST_APPS_SCRIPT_URL, { // This is the correct URL
